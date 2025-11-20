@@ -7,3 +7,14 @@ In this report, we are going to investigate data from Draco's individuals living
 ## Data
 
 Individuals of a species of flying lizards (Draco sp.) on 100 islands in the Malayan archipelago. Each row corresponds to an island, which consists of records collected in plots of 1 × 1 km (i.e. 1 km) on each island. The first variable counts contains the number of flying lizards found on these plots.
+
+Our variables are: 
+
+- *Count* : contains the number of flying lizards found on these plots;
+- *ndvi*: index of vegetation "greenness", with range values [-1;1], where -1 is rocky ground and. Is the maximum vegetation cover; 
+- *alt*: average altitude in meters;
+- *ants*: density of ants nests in each study plot (food sources);
+- *humid*: humidity in percentage;
+- *frog*: density of frogs in each study plot (competitors).
+
+The main idea according to some background readings also, is that the presence of this kind of lizard, is particularly influenced by the kind of environment, in particular, being this a vulnerable species to predators, my assumption is that they use their color to camouflage their selves on rocky surrounding, from which usually there is a large amount of ants to find nutrition too. 
