@@ -1,0 +1,238 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(
+    message = FALSE,
+    warning = FALSE,
+    cache = TRUE,
+    tidy = FALSE,
+	  fit.pagh = "images",
+    out.width = "75%")
+```
+# Load dataset and libraries 
+
+```{r}
+library(readr)
+library(ggplot2) # Plotting Library
+library(dplyr) # Data manipulation
+library(faraway) # Data
+library(car) # Linear Hypothesis Testing
+library(lmreg) # One sided linear hypothesis testing
+library(emmeans)
+
+#tinytex::install_tinytex(force=TRUE)
+```
+
+#Introduction
+
+![](\draco-lizard_3x2.avif)
+
+The Draco flying lizard, scientifically known as Draco volans, is a species of lizard capable of gliding through the air. These lizards belong to the family Agamidae and are native to Southeast Asia, including countries such as Malaysia, Indonesia, and the Philippines. Dracos reach about 8 inches long, including tail. They have flattened bodies, which also aid in flight, and are a mottled brown in color. The undersides of their wings are blue in males and yellow in females. They also have a flap of skin on the bottom of their necks called a dewlap. This is bright yellow in males and bluish gray in females. The flying lizard is found mainly in rain forests and tropical areas that can provide adequate number of trees for the lizard to jump from.
+
+In this report, we are going to investigate data from Draco's individuals living on 100 Malayan achipelago, where each row corresponds to an island. 
+
+Our variables are: 
+
+- *Count* : contains the number of flying lizards found on these plots;
+- *ndvi*: index of vegetation "greenness", with range values [-1;1], where -1 is rocky ground and. Is the maximum vegetation cover; 
+- *alt*: average altitude in meters;
+-*ants*: density of ants nests in each study plot (food sources);
+-*humid*: humidity in percentage;
+-*frog*: density of frogs in each study plot (competitors).
+
+The main idea according to some background readings also, is that the presence of this kind of lizard, is particularly influenced by the kind of environment, in particular, being this a vulnerable species to predators, my assumption is that they use their color to camouflage their selves on rocky surrounding, from which usually there is a large amount of ants to find nutrition too. 
+
+Hypothesis:
+
+
+
+# Methods & results
+
+Linear regression is used to estimate the count number of lizards,
+
+Most inclusive model:
+
+$Y_{counts}=\beta_{ndvi}+1beta_{alt}+\beta_{ants}+\beta_{humid}+\beta_{frog}+\epsilon$
+
+Data exploration
+```{r}
+load("Data2_DS837_F2024.rdata")
+liz<-data
+attach(liz)
+dim(liz)
+summary(liz)
+summary(liz)
+plot(liz)
+head(liz)
+
+# Assuming `response` is your response variable
+if(any(liz$counts <= 0)) {
+  liz$counts <- liz$counts + abs(min(liz$counts)) + 1
+}
+
+mod1=lm(log(counts) ~ ., data=liz)
+summary(mod1)
+plot(mod1)
+confint(mod1 ,level = 0.95)
+```
+
+The multiple R-squared suggests that only 44% of our model is explained, that is barely the half.
+according to our hypothesis: 
+
+$H_0: \beta_{n}= 0$
+$H_1:$ at least one $\beta_n$ is different from the other.
+
+Our p-value is near zero, so we reject the null hypothesis for which at least one predictor is not significant in our model.
+
+Indeed for example, the altitude and the ants are significant for our model. 
+
+# Interaction model
+
+Let's now consider a model with interactions, in particular, let's check the significance of the interaction between three variables : "green index", "ants" and "altitude", to which we add the "humidity" predictor:
+
+Model with interaction
+```{r}
+mod2=lm(log(counts) ~ humid*frog+alt+ants+ndvi, data=liz)
+summary(mod2) #model with interaction
+confint(mod2, level = 0.95) # confidence interval
+par(mfrow=c(2,2))
+plot(mod2)
+```
+Before interpreting the results, let's see if the interactions have enough statistical evidence to interact with the response, through an F-test:
+
+
+```{r}
+anova(lm(log(counts)~humid*frog, data=liz)) -> #ok for 0.1
+```
+
+# Interpretations
+
+Confidence intervals interpretation (bold ones are significant predictors/interactions)
+
+For the intercept, the true rate (change in counts loss per %) lies between -13.85 and 56 with a confidence of 95%
+
+For the humidity, the true rate (change in counts loss per %) lies between -36.89 and 30.63 with a confidence of 95%
+
+For the altitude, the true rate (change in counts loss per %) lies between -0.70and 0.21 with a confidence of 95%
+
+For the *ants*, the true rate (change in counts loss per %) lies between -2.37 and -0.51 with a confidence of 95%
+
+For the *ndvi*, the true rate (change in counts loss per %) lies between -118.25 and -61.03 with a confidence of 95%
+
+For the alt*ants, the true rate (change in counts loss per %) lies between -0.02 and 0.05 with a confidence of 95%
+
+For the alt*ndvi, the true rate (change in counts loss per %) lies between 0.56 and 2.34 with a confidence of 95%
+
+For the *ants**ndvi**, the true rate (change in counts loss per %) lies between 8.45 and 12.29 with a confidence of 95%
+
+For the *ants**ndvi**alt*, the true rate (change in counts loss per %) lies between -0.23 and-0.23 with a confidence of 95%
+
+
+- find function to plot CI
+
+```{r}
+library(ggpubr)
+ncounts<-log(liz$counts) #transforming counts in log(counts) to reflect the correct relationship
+
+ggarrange(p1, p2, p3,p4,p5,p6 + rremove("x.text"),
+          ncol = 2, nrow = 3) 
+
+p1<-ggplot(liz, aes(x=ndvi, y=ncounts)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE) + theme_light()
+p2<-ggplot(liz, aes(x=humid, y=ncounts)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE) + theme_light()
+p3<-ggplot(liz, aes(x=frog, y=ncounts)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE) + theme_light()
+p4<-ggplot(liz, aes(x=ants, y=ncounts)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE) + theme_light()
+p5<-ggplot(liz, aes(x=alt, y=ncounts)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE) + theme_light()
+p6<-ggplot(liz, aes(x=humid*frog, y=ncounts)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE)+ theme_light()
+```
+
+
+
+
+
+
+
+We can see that in the interaction model, the multiple R_2 increased to 80%, meaning that we are explaining more of our model. As we can see, the second model also presents a lower AIC, indicating that is a better model to consider.
+
+```{r}
+AIC(mod1)
+AIC(mod2)
+```
+
+
+
+```{r}
+# Fit the full model
+mod2 <- lm(log(counts) ~ humid*frog + alt + ants + ndvi, data = liz)
+
+# Fit the null model
+null_model <- lm(log(counts) ~ 1, data = liz)
+
+# Compare the full model with the null model using anova
+anova_results <- anova(null_model, mod2)
+
+# Print the ANOVA results
+print(anova_results)
+
+# Extract the F-statistic and p-value from the ANOVA results
+f_statistic <- anova_results$"F"[2]
+p_value <- anova_results$"Pr(>F)"[2]
+
+cat("F-statistic:", f_statistic, "\n")
+cat("p-value:", p_value, "\n")
+
+```
+In this case:
+
+F-statistic: 156.92
+p-value: < 2.2e-16
+This indicates that the full model (Model 2) significantly improves the fit to the data compared to the null model (Model 1), as evidenced by the very high F-statistic and the extremely low p-value. This strong evidence suggests that at least some of the predictors in the full model are significantly associated with the response variable
+
+
+
+```{r}
+# Summary of the full model
+summary_mod2 <- summary(mod2)
+
+# Print the summary
+print(summary_mod2)
+
+# Extract the t-values and p-values for each coefficient
+t_values <- summary_mod2$coefficients[, "t value"]
+p_values <- summary_mod2$coefficients[, "Pr(>|t|)"]
+
+cat("t-values:\n")
+print(t_values)
+
+cat("p-values:\n")
+print(p_values)
+
+```
+
+
+Explanation
+F-distribution: Used when comparing the full model to the null model. The F-test statistic follows an F-distribution under the null hypothesis. The degrees of freedom for the F-distribution are determined by the number of parameters in the models being compared.
+
+t-distribution: Used for testing individual regression coefficients. The t-test statistic follows a t-distribution under the null hypothesis. The degrees of freedom for the t-distribution are the residual degrees of freedom from the regression model.
+
+Interpretation
+The F-statistic tests whether the full model provides a significantly better fit to the data compared to the null model. A high F-statistic and a low p-value suggest that the full model significantly improves the fit.
+
+The t-statistics test whether each individual coefficient is significantly different from zero. A high absolute value of the t-statistic and a low p-value suggest that the corresponding predictor is significantly associated with the response variable.
